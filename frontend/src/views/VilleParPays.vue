@@ -45,26 +45,69 @@ onMounted(() => {
   fetchCities(); // On récupère les villes (pour la table)
   fetchCountries(); // On récupère les pays (pour le sélecteur de pays)
 });
+
+function resetSelector(){
+    document.getElementById("countrySelector").selectedIndex = 0;
+    fetchCities();
+}
+
+function orderByCountry(){
+    let selectedCountryId = document.getElementById('countrySelector').value;
+  fetch("api/citiesByCountry?id=" + selectedCountryId)
+    .then((response) => response.json())
+    .then((json) => {
+      data.allCities = json
+    })
+    .catch((error) => alert(error));
+}
+
+function saveCity() {
+  //var data = new URLSearchParams(this.editedCity).toString();
+  ajaxSaveCity()
+    .then((json) => {
+      data.editedCity = { ...emptyCity };
+      fetchCities(); // On rafraîchit les villes
+})
+    .catch((error) => alert(error));
+}
+
+async function ajaxSaveCity() {
+  const options = {
+    method: "POST",
+    mode: "cors",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data.editedCity),
+  };
+  // Utilise l'API REST auto-générée pour enregistrer la ville
+  const response = await fetch("api/cities", options);
+  if (!response.ok) {
+    // status != 2XX
+    const message = await response.text();
+    throw new Error(message);
+  }
+  return response.json();
+}
+
 </script>
 
 <template>
   <div class="home">
     <h2>Villes par pays</h2>
         <label for="country">Choisir un pays : </label>
-        <!--
-        <select @change="onChange($event)" class="form-control" v-model="data.editedCity.country">
-            <option disabled value="0">Choisissez un pays</option>
-            <option
+        <select id="countrySelector" class="form-control" v-model="data.editedCity.country" @change="orderByCountry()">
+              <option disabled value="0">Choisissez un pays</option>
+              <option
                 v-for="country in data.allCountries"
                 :key="country.id"
-                :value="country._links.self.href"
+                :value="country.id"
               >
                 {{ country.name }}
-            </option>
-        </select>
-        -->
+              </option>
+            </select>
     <hr>
-    <city-list />
+    <city-list v-bind:cities="data.allCities" @refresh="fetchCities()" />
   </div>
 </template>
 
